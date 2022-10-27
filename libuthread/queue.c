@@ -64,6 +64,7 @@ int queue_dequeue(queue_t queue, void **data)
 {
 	if(!queue || !data || queue->length == 0)
 		return -1;
+	
 	*data = queue->head->data;
 	queue->head = queue->head->next;
 	queue->length--;
@@ -72,24 +73,56 @@ int queue_dequeue(queue_t queue, void **data)
 
 int queue_delete(queue_t queue, void *data)
 {
-	// if(!queue || !data)
-	// 	return -1;
-	// struct node* counter  = queue->head;
-	// struct node* previous = queue->head;
-	// while(counter->next != NULL)
-	// {
-	// }
+	if(!queue || !data)
+		return -1;
+
+	if (queue->head->data == data) //if the node to be deleted is the first element
+	{
+		queue->head = queue->head->next;
+		queue->length--;
+		return 0;
+	}
+
+	struct node* counter  = queue->head;
+	struct node* previous = queue->head;
+
+	while(counter != NULL)
+	{
+
+		if(counter->data == data)
+		{
+			previous->next = counter->next;
+			queue->length--;
+			return 0;
+		}
+		previous = counter;
+		counter = counter->next;
+	}
+
+	return -1;
 }
 
 int queue_iterate(queue_t queue, queue_func_t func)
 {
-	/* TODO Phase 1 */
+	if(!queue || !func)
+		return -1;
+
+	struct node* counter  = queue->head;
+
+	while(queue != NULL)
+	{
+		func(queue, counter->data);
+		counter = counter->next;
+	}
+	
+	return 0;
 }
 
 int queue_length(queue_t queue)
 {
 	if(!queue)
 		return -1;
+	
 	return queue->length;
 }
 
