@@ -17,7 +17,7 @@ struct queue {
 
 queue_t queue_create(void)
 {
-	queue_t queue = malloc(sizeof(queue_t));
+	queue_t queue = malloc(sizeof(struct queue));
 
 	if(!queue) //if case of failure, return null
 		return NULL;
