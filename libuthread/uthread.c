@@ -56,6 +56,7 @@ void uthread_yield(void)
 void uthread_exit(void)
 {
 	current_thread->state = exited;
+	uthread_ctx_destroy_stack(current_thread->stack_pointer);
 	queue_enqueue(exited_queue, current_thread);
 
 	struct uthread_tcb* next;
