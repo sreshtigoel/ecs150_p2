@@ -26,7 +26,7 @@ struct uthread_tcb {
 	uthread_ctx_t* cpu_registers;
 };
 
-struct uthread_tcb idle_thread;
+struct uthread_tcb* idle_thread;
 struct uthread_tcb* current_thread;
 
 /*   ===========================================================================================  */
@@ -44,7 +44,10 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
 	if(!ready_queue || !exited_queue)
 		return -1;
 
-	current_thread = &idle_thread;
+	idle_thread = malloc(sizeof(struct uthread_tcb));
+	idle_thread->state = running;
+	idle_thread->cpu_registers = malloc(sizeof(uthread_ctx_t));
+	current_thread = idle_thread;
 	int thread_create_return_value = uthread_create(func, arg); //creating initial thread
 
 	if(thread_create_return_value) //anything other than 0
