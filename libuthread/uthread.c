@@ -29,17 +29,78 @@ struct uthread_tcb {
 struct uthread_tcb idle_thread;
 struct uthread_tcb* current_thread;
 
-struct uthread_tcb *uthread_current(void)
+/*   ===========================================================================================  */
+
+
+int uthread_run(bool preempt, uthread_func_t func, void *arg)
 {
-	/* TODO Phase 2/4 */
+	if (preempt)
+		preempt_start(true);
+
+	ready_queue = queue_create();
+	exited_queue = queue_create();
+	//struct uthread_tcb* tcb;
+
+	if(!ready_queue || !exited_queue)
+		return -1;
+
+	current_thread = &idle_thread;
+	int thread_create_return_value = uthread_create(func, arg); //creating initial thread
+
+	if(thread_create_return_value) //anything other than 0
+		return -1;
+
+	while(1)
+	{
+		/* deal with threads that reached completion and destroys them */
+		while (queue_length(exited_queue) > 0) {
+			void* garbage;
+			queue_dequeue(exited_queue, (void**) &garbage);
+			free(garbage);
+		}
+		
+		if(queue_length(ready_queue) == 0)
+			break;
+		uthread_yield();
+		
+	}
+	if (preempt)
+		// reset preempt
+		preempt_stop();
+
+	return 0;
 }
+
+/* ===========================================================================================   */
+
+int uthread_create(uthread_func_t func, void *arg)
+{
+	struct uthread_tcb* tcb = malloc(sizeof(struct uthread_tcb));
+	if (tcb == NULL)
+		return -1;
+
+	tcb->stack_pointer = uthread_ctx_alloc_stack();
+	tcb->state = ready;
+	tcb->cpu_registers = malloc(sizeof(uthread_ctx_t));
+	int init_return_value = uthread_ctx_init(tcb->cpu_registers,  tcb->stack_pointer, func, arg);
+
+	if(init_return_value || !tcb->stack_pointer)
+		return -1;
+
+	queue_enqueue(ready_queue, tcb);//enqueue the tcb into the ready queue
+	return 0;
+}
+
+
+/* ===========================================================================================  */
+
 
 void uthread_yield(void)
 {
-	queue_enqueue(ready_queue, current_thread);
-
+	preempt_disable(); // below is critical section
+	queue_enqueue(ready_queue, current_thread); // add current thread to end of queue
 	struct uthread_tcb* next;
-	queue_dequeue(ready_queue, (void**)&next); //next will have the dequeued thread
+	queue_dequeue(ready_queue, (void**)&next); //pop the next to-run thread
 	struct uthread_tcb* curr = current_thread;
 	
 	if (curr != next)
@@ -48,10 +109,14 @@ void uthread_yield(void)
 		next->state = running;
 
 		current_thread = next;
-		uthread_ctx_switch(curr, next);
+		uthread_ctx_switch(curr->cpu_registers, next->cpu_registers);
 	}
+	preempt_enable();
 	
 }
+
+
+/*   =========================================================================================== */
 
 void uthread_exit(void)
 {
@@ -65,61 +130,23 @@ void uthread_exit(void)
 
 	current_thread = next;
 	current_thread->state = running;
-	uthread_ctx_switch(curr, next);
+	uthread_ctx_switch(curr->cpu_registers, next->cpu_registers);
 
 	assert(0); //should never return
 }
 
-int uthread_create(uthread_func_t func, void *arg)
-{
-	struct uthread_tcb* tcb = malloc(sizeof(struct uthread_tcb));
 
-	tcb->stack_pointer = uthread_ctx_alloc_stack();
-	tcb->state = ready;
-	int init_return_value = uthread_ctx_init(tcb->cpu_registers,  tcb->stack_pointer, func, arg);
+// struct uthread_tcb *uthread_current(void)
+// {
+// 	/* TODO Phase 2/4 */
+// }
 
-	if(init_return_value || !tcb->stack_pointer)
-		return -1;
+// void uthread_block(void)
+// {
+// 	/* TODO Phase 4 */
+// }
 
-	queue_enqueue(ready_queue, tcb);//enqueue the tcb into the ready queue
-	return 0;
-}
-
-int uthread_run(bool preempt, uthread_func_t func, void *arg)
-{
-	ready_queue = queue_create();
-	exited_queue = queue_create();
-	struct uthread_tcb* tcb;
-
-	if(!ready_queue || !exited_queue)
-		return -1;
-
-	current_thread = &idle_thread;
-	int thread_create_return_value = uthread_create(func, arg); //creating new thread
-
-	if(thread_create_return_value) //anything other than 0
-		return -1;
-
-	while(1)
-	{
-		if (!preempt)
-		{
-			if(queue_length(ready_queue) == 0)
-				break;
-			uthread_yield();
-		}
-	}
-
-	return 0;
-}
-
-void uthread_block(void)
-{
-	/* TODO Phase 4 */
-}
-
-void uthread_unblock(struct uthread_tcb *uthread)
-{
-	/* TODO Phase 4 */
-}
-
+// void uthread_unblock(struct uthread_tcb *uthread)
+// {
+// 	/* TODO Phase 4 */
+// }
