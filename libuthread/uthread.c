@@ -23,7 +23,7 @@ enum thread_state {
 struct uthread_tcb {
 	enum thread_state state;
 	void *stack_pointer;
-	uthread_ctx_t* cpu_registers;
+	uthread_ctx_t* ctx;
 };
 
 struct uthread_tcb* idle_thread;
@@ -46,8 +46,9 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
 
 	idle_thread = malloc(sizeof(struct uthread_tcb));
 	idle_thread->state = running;
-	idle_thread->cpu_registers = malloc(sizeof(uthread_ctx_t));
+	idle_thread->ctx = malloc(sizeof(uthread_ctx_t));
 	current_thread = idle_thread;
+
 	int thread_create_return_value = uthread_create(func, arg); //creating initial thread
 
 	if(thread_create_return_value) //anything other than 0
@@ -84,8 +85,8 @@ int uthread_create(uthread_func_t func, void *arg)
 
 	tcb->stack_pointer = uthread_ctx_alloc_stack();
 	tcb->state = ready;
-	tcb->cpu_registers = malloc(sizeof(uthread_ctx_t));
-	int init_return_value = uthread_ctx_init(tcb->cpu_registers,  tcb->stack_pointer, func, arg);
+	tcb->ctx = malloc(sizeof(uthread_ctx_t));
+	int init_return_value = uthread_ctx_init(tcb->ctx,  tcb->stack_pointer, func, arg);
 
 	if(init_return_value || !tcb->stack_pointer)
 		return -1;
@@ -112,7 +113,7 @@ void uthread_yield(void)
 		next->state = running;
 
 		current_thread = next;
-		uthread_ctx_switch(curr->cpu_registers, next->cpu_registers);
+		uthread_ctx_switch(curr->ctx, next->ctx);
 	}
 	preempt_enable();
 	
@@ -133,7 +134,7 @@ void uthread_exit(void)
 
 	current_thread = next;
 	current_thread->state = running;
-	uthread_ctx_switch(curr->cpu_registers, next->cpu_registers);
+	uthread_ctx_switch(curr->ctx, next->ctx);
 
 	assert(0); //should never return
 }
