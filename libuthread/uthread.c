@@ -57,7 +57,8 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
 	while(1)
 	{
 		/* deal with threads that reached completion and destroys them */
-		while (queue_length(exited_queue) > 0) {
+		while (queue_length(exited_queue) > 0) 
+		{
 			void* garbage;
 			queue_dequeue(exited_queue, (void**) &garbage);
 			free(garbage);
@@ -140,17 +141,18 @@ void uthread_exit(void)
 }
 
 
-// struct uthread_tcb *uthread_current(void)
-// {
-// 	/* TODO Phase 2/4 */
-// }
+struct uthread_tcb *uthread_current(void)
+{
+	return current_thread;
+}
 
-// void uthread_block(void)
-// {
-// 	/* TODO Phase 4 */
-// }
+void uthread_block(void)
+{
+	current_thread->state = blocked;
+}
 
-// void uthread_unblock(struct uthread_tcb *uthread)
-// {
-// 	/* TODO Phase 4 */
-// }
+void uthread_unblock(struct uthread_tcb *uthread)
+{
+	uthread->state = ready;
+	queue_enqueue(ready_queue, uthread);
+}

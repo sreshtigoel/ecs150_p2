@@ -4,14 +4,13 @@
 #include "queue.h"
 #include "sem.h"
 #include "private.h"
-#include "queue.h"
 #include "uthread.h"
 
 struct semaphore {
 	size_t count;
 	queue_t blocked;
-	struct uthread_tcb* thread_tcb;
 };
+struct uthread_tcb* calling_thread;
 
 sem_t sem_create(size_t count)
 {
@@ -30,20 +29,22 @@ int sem_destroy(sem_t sem)
 	if(!sem || queue_length(sem->blocked) != 0)
 		return -1;
 
+	queue_destroy(sem->blocked);
 	free(sem);
-	
+
 	return 0;
 }
 
 int sem_down(sem_t sem)
 {
 	if (!sem)
-		return NULL;
+		return -1;
 	
-	while (sem->count == 0)
+	if (sem->count == 0)
 	{
-		//sem->thread_tcb->state = blocked;
-		queue_enqueue(sem->blocked, &sem->thread_tcb);
+		calling_thread = uthread_current();
+		uthread_block(); //change the state of the current thread to blocked
+		queue_enqueue(sem->blocked, calling_thread);
 	}
 	sem->count--;
 
@@ -59,10 +60,9 @@ int sem_up(sem_t sem)
 
 	if(queue_length(sem->blocked) != 0)
 	{
-		uthread_tcb* run_thread;
-		queue_dequeue(sem->blocked, &run_thread);
-		run_thread->state = ready;
-		queue_enqueue(ready_queue, run_thread);
+		struct uthread_tcb* unblock_thread;
+		queue_dequeue(sem->blocked, (void**)unblock_thread);
+		uthread_unblock(unblock_thread); //change state of thread to ready and enqueue to ready queue
 	}
 
 	return 0;
