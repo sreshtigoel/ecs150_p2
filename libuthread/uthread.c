@@ -137,7 +137,7 @@ void uthread_exit(void)
 	current_thread = next;
 	current_thread->state = running;
 	uthread_ctx_switch(curr->ctx, next->ctx);
-	
+
 }
 
 
@@ -149,10 +149,22 @@ struct uthread_tcb *uthread_current(void)
 void uthread_block(void)
 {
 	current_thread->state = blocked;
+
+	struct uthread_tcb* next;
+	queue_dequeue(ready_queue, (void**)&next); //pop the next to-run thread
+	struct uthread_tcb* curr = current_thread;
+
+	if (current_thread != next)
+	{
+		current_thread = next;
+		uthread_ctx_switch(curr->ctx, next->ctx);
+	}
 }
 
 void uthread_unblock(struct uthread_tcb *uthread)
 {
 	uthread->state = ready;
 	queue_enqueue(ready_queue, uthread);
+
+	uthread_yield();
 }
