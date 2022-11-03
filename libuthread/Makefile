@@ -35,7 +35,7 @@ endif
 CFLAGS	+= -MMD
 
 # Object files to compile
-objs := queue.o uthread.o preempt.o context.o   # other files to be added later
+objs := queue.o uthread.o preempt.o context.o sem.o  # other files to be added later
 
 # Include dependencies
 deps := $(patsubst %.o,%.d,$(objs))
