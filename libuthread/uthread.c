@@ -106,7 +106,7 @@ void uthread_yield(void)
 
 	struct uthread_tcb* next;
 	queue_dequeue(ready_queue, (void**)&next); //pop the next to-run thread
-	
+
 	struct uthread_tcb* curr = current_thread;
 	
 	if (curr != next)
@@ -137,8 +137,7 @@ void uthread_exit(void)
 	current_thread = next;
 	current_thread->state = running;
 	uthread_ctx_switch(curr->ctx, next->ctx);
-
-	assert(0); //should never return
+	
 }
 
 

@@ -61,7 +61,7 @@ int sem_up(sem_t sem)
 	if(queue_length(sem->blocked) != 0)
 	{
 		struct uthread_tcb* unblock_thread;
-		queue_dequeue(sem->blocked, (void**)unblock_thread);
+		queue_dequeue(sem->blocked, (void**)&unblock_thread);
 		uthread_unblock(unblock_thread); //change state of thread to ready and enqueue to ready queue
 	}
 
