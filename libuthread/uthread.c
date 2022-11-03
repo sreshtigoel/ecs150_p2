@@ -39,25 +39,24 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
 
 	ready_queue = queue_create();
 	exited_queue = queue_create();
-	//struct uthread_tcb* tcb;
-
-	if(!ready_queue || !exited_queue)
-		return -1;
 
 	idle_thread = malloc(sizeof(struct uthread_tcb));
-	idle_thread->state = running;
 	idle_thread->ctx = malloc(sizeof(uthread_ctx_t));
+
+	if(!ready_queue || !exited_queue || !idle_thread || !idle_thread->ctx)
+		return -1;
+	
+	idle_thread->state = running;
+	
 	current_thread = idle_thread;
 
-	int thread_create_return_value = uthread_create(func, arg); //creating initial thread
-
-	if(thread_create_return_value) //anything other than 0
+	if(uthread_create(func, arg)) //anything other than 0
 		return -1;
 
 	while(1)
 	{
-		/* deal with threads that reached completion and destroys them */
-		while (queue_length(exited_queue) > 0) 
+		
+		while (queue_length(exited_queue) > 0) //destroy threads that reach completion 
 		{
 			void* garbage;
 			queue_dequeue(exited_queue, (void**) &garbage);
@@ -67,10 +66,9 @@ int uthread_run(bool preempt, uthread_func_t func, void *arg)
 		if(queue_length(ready_queue) == 0)
 			break;
 		uthread_yield();
-		
 	}
-	if (preempt)
-		// reset preempt
+
+	if (preempt) // reset preempt
 		preempt_stop();
 
 	return 0;
@@ -103,9 +101,12 @@ int uthread_create(uthread_func_t func, void *arg)
 void uthread_yield(void)
 {
 	preempt_disable(); // below is critical section
+
 	queue_enqueue(ready_queue, current_thread); // add current thread to end of queue
+
 	struct uthread_tcb* next;
 	queue_dequeue(ready_queue, (void**)&next); //pop the next to-run thread
+	
 	struct uthread_tcb* curr = current_thread;
 	
 	if (curr != next)
