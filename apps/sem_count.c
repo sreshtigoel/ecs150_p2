@@ -10,8 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <sem.h>
-#include <uthread.h>
+#include "../libuthread/sem.h"
+#include "../libuthread/uthread.h"
 
 #define MAXCOUNT 20
 

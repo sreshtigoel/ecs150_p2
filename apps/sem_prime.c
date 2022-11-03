@@ -13,8 +13,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <sem.h>
-#include <uthread.h>
+#include "../libuthread/sem.h"
+#include "../libuthread/uthread.h"
 
 #define MAXPRIME 1000
 
